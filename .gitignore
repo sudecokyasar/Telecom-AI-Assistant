@@ -1,0 +1,26 @@
+# Sanal Ortam & Çevre Değişkenleri
+venv/
+.env
+
+# Python & Jupyter Önbellekleri
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Ağır Veri Dosyaları ve Vektör Veritabanı
+data/chroma_db/
+data/raw/
+*.csv
+
+# MLflow Logları ve Eğitilmiş Modeller
+notebooks/mlruns/
+notebooks/mlflow.db
+mlruns/
+*.pkl
+*.db
+*.sqlite3
+
+# IDE / Editör Dosyaları
+.vs/
+.vscode/
+.DS_Store

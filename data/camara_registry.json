@@ -1,0 +1,90 @@
+{
+  "+905321112233": {
+    "device_status": {
+      "connectivity_status": "CONNECTED",
+      "network_type": "5G_STANDALONE",
+      "signal_strength_dbm": -82,
+      "cell_id": "IST-BEYOGLU-C42",
+      "roaming_status": "HOME_NETWORK"
+    },
+    "sim_status": {
+      "sim_type": "eSIM",
+      "sim_swap_date": "2026-03-12T10:00:00Z",
+      "roaming_enabled": true,
+      "international_roaming_allowed": true
+    },
+    "billing_summary": {
+      "current_bill_tl": 340.0,
+      "internet_used_gb": 34.5,
+      "internet_total_gb": 50.0,
+      "min_left": 650,
+      "sms_left": 120
+    }
+  },
+  "+905359876543": {
+    "device_status": {
+      "connectivity_status": "ROAMING_ACTIVE",
+      "network_type": "4G_LTE",
+      "signal_strength_dbm": -95,
+      "cell_id": "DE-BER-MITTE-08",
+      "roaming_status": "INTERNATIONAL_ROAMING"
+    },
+    "sim_status": {
+      "sim_type": "Nano-SIM",
+      "sim_swap_date": "2025-11-20T14:30:00Z",
+      "roaming_enabled": true,
+      "international_roaming_allowed": true
+    },
+    "billing_summary": {
+      "current_bill_tl": 780.50,
+      "internet_used_gb": 18.2,
+      "internet_total_gb": 20.0,
+      "min_left": 150,
+      "sms_left": 45
+    }
+  },
+  "+905423334455": {
+    "device_status": {
+      "connectivity_status": "DISCONNECTED",
+      "network_type": "NO_SERVICE",
+      "signal_strength_dbm": -125,
+      "cell_id": "UNKNOWN_CELL",
+      "roaming_status": "OUT_OF_SERVICE"
+    },
+    "sim_status": {
+      "sim_type": "eSIM",
+      "sim_swap_date": "2026-08-01T09:15:00Z",
+      "roaming_enabled": false,
+      "international_roaming_allowed": false
+    },
+    "billing_summary": {
+      "current_bill_tl": 210.0,
+      "internet_used_gb": 20.0,
+      "internet_total_gb": 20.0,
+      "min_left": 0,
+      "sms_left": 500
+    }
+  },
+  "+905556667788": {
+    "device_status": {
+      "connectivity_status": "CONNECTED",
+      "network_type": "4G_VOLTE",
+      "signal_strength_dbm": -74,
+      "cell_id": "ANK-CANKAYA-A19",
+      "roaming_status": "HOME_NETWORK"
+    },
+    "sim_status": {
+      "sim_type": "Nano-SIM",
+      "sim_swap_date": "2024-05-18T11:00:00Z",
+      "roaming_enabled": true,
+      "international_roaming_allowed": false
+    },
+    "billing_summary": {
+      "current_bill_tl": 450.0,
+      "internet_used_gb": 12.0,
+      "internet_total_gb": 40.0,
+      "min_left": 1800,
+      "sms_left": 950
+    }
+  }
+}
