@@ -1,30 +1,46 @@
 import streamlit as st
-import requests
 import os
 import time
 import base64
 import json
 from pathlib import Path
 import sys
-from pathlib import Path
 
 # Proje kök dizinini Python yoluna ekle
 root_path = Path(__file__).resolve().parent.parent
 sys.path.append(str(root_path))
+
+# Doğrudan Python servislerini import ediyoruz (FastAPI aradan çıkarıldı)
+from src.services.classifier_service import TicketClassifierService
+from src.services.rag_service import TelecomRAGService
+
 # ==============================================================================
-# 1. SAYFA YAPILANDIRMASI & API URL
+# 1. SAYFA YAPILANDIRMASI
 # ==============================================================================
 st.set_page_config(
     page_title="Canlı Telekom Asistanı",
-
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+# ==============================================================================
+# 2. SERVİSLERİN BAŞLATILMASI (CACHED)
+# ==============================================================================
+@st.cache_resource
+def load_services():
+    classifier = TicketClassifierService()
+    rag = TelecomRAGService()
+    return classifier, rag
+
+try:
+    classifier_service, rag_service = load_services()
+    services_loaded = True
+except Exception as e:
+    services_loaded = False
+    load_error = str(e)
 
 # ==============================================================================
-# 2. SESSION STATE
+# 3. SESSION STATE
 # ==============================================================================
 if "theme_mode" not in st.session_state:
     st.session_state.theme_mode = "dark"
@@ -34,7 +50,7 @@ if "messages" not in st.session_state:
 
 
 # ==============================================================================
-# 3. DİNAMİK TEMA VE CSS YÖNETİMİ
+# 4. DİNAMİK TEMA VE CSS YÖNETİMİ
 # ==============================================================================
 if st.session_state.theme_mode == "dark":
     THEME_CSS = """
@@ -115,7 +131,6 @@ html, body, [class*="css"], .stApp {{
 #MainMenu, footer {{ visibility: hidden !important; height: 0px !important; }}
 header {{ background: transparent !important; }}
 
-/* Sidebar Butonu */
 [data-testid="stSidebarCollapsedControl"] {{
     display: block !important;
     color: #00D2FF !important;
@@ -132,7 +147,6 @@ header {{ background: transparent !important; }}
     max-width: 1080px !important;
 }}
 
-/* Sidebar */
 [data-testid="stSidebar"] {{
     background: var(--sidebar-bg) !important;
     backdrop-filter: blur(20px) !important;
@@ -144,7 +158,6 @@ header {{ background: transparent !important; }}
     padding-top: 1.0rem !important;
 }}
 
-/* Kartlar */
 [data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"] {{
     background: var(--bg-panel) !important;
     border: 1px solid var(--card-border) !important;
@@ -154,7 +167,6 @@ header {{ background: transparent !important; }}
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
 }}
 
-/* Header */
 .header-container {{
     display: flex;
     align-items: center;
@@ -213,7 +225,6 @@ header {{ background: transparent !important; }}
     100% {{ box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }}
 }}
 
-/* Profil */
 .profile-row {{ display: flex; align-items: center; gap: 12px; }}
 .profile-avatar {{
     width: 42px; height: 42px;
@@ -222,14 +233,7 @@ header {{ background: transparent !important; }}
     display: flex; align-items: center; justify-content: center;
     font-family: 'Space Grotesk', sans-serif; font-weight: 800; color: white;
 }}
-.tier-badge {{
-    display: inline-block; padding: 3px 8px;
-    background: linear-gradient(90deg, #F59E0B, #EF4444);
-    border-radius: 6px; font-size: 0.65rem; font-weight: 800;
-    color: #FFFFFF; font-family: 'Space Grotesk', sans-serif;
-}}
 
-/* Segmentli Ölçerler */
 .meter-wrapper {{ margin-top: 14px; margin-bottom: 4px; }}
 .meter-row {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }}
 .meter-label {{ font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); }}
@@ -241,7 +245,6 @@ header {{ background: transparent !important; }}
 .seg-green.on {{ background: linear-gradient(90deg, #10B981, #34D399); box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }}
 .seg-purple.on {{ background: linear-gradient(90deg, #8B5CF6, #EC4899); box-shadow: 0 0 8px rgba(139, 92, 246, 0.4); }}
 
-/* Fatura */
 .bill-amount {{
     font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; font-weight: 800;
     background: linear-gradient(90deg, #F59E0B, #FB923C);
@@ -249,7 +252,6 @@ header {{ background: transparent !important; }}
     -webkit-text-fill-color: transparent;
 }}
 
-/* Chat Balonları */
 [data-testid="stChatMessage"] {{ background: transparent !important; padding: 0.7rem 0 !important; }}
 
 [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarCustom"]) div[data-testid="stMarkdownContainer"],
@@ -273,7 +275,6 @@ header {{ background: transparent !important; }}
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25) !important;
 }}
 
-/* Meta Rozetler */
 .meta-strip {{
     display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
     padding-top: 12px; border-top: 1px solid var(--border-color);
@@ -286,7 +287,6 @@ header {{ background: transparent !important; }}
 .chip-conf {{ background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10B981; }}
 .chip-doc {{ background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.4); color: #A855F7; }}
 
-/* Butonlar */
 .stButton > button {{
     background: var(--btn-bg) !important;
     border: 1px solid var(--btn-border) !important;
@@ -303,7 +303,6 @@ header {{ background: transparent !important; }}
     transform: translateY(-1px) !important;
 }}
 
-/* Alt Sabit Çubuk */
 [data-testid="stBottom"],
 [data-testid="stBottom"] > div,
 .stChatFloatingInputContainer,
@@ -313,7 +312,6 @@ header {{ background: transparent !important; }}
     border-top: 1px solid var(--bottom-bar-border) !important;
 }}
 
-/* Chat Input Dış Çerçevesi ve Tüm İç Katmanları */
 [data-testid="stChatInput"],
 [data-testid="stChatInput"] > div,
 [data-testid="stChatInput"] div[data-baseweb="base-input"],
@@ -325,27 +323,23 @@ header {{ background: transparent !important; }}
     -webkit-text-fill-color: var(--chat-input-text) !important;
 }}
 
-/* Dış Kenarlık & Yuvarlatma */
 [data-testid="stChatInput"] {{
     border-radius: 14px !important;
     border: 1px solid var(--chat-input-border) !important;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
 }}
 
-/* BaseWeb İç Kenarlıklarını Temizle */
 [data-testid="stChatInput"] div[data-baseweb="base-input"],
 [data-testid="stChatInput"] div[data-baseweb="textarea"] {{
     border: none !important;
     box-shadow: none !important;
 }}
 
-/* Placeholder (İpucu Metni) */
 [data-testid="stChatInput"] textarea::placeholder {{
     color: var(--text-secondary) !important;
     opacity: 0.8 !important;
 }}
 
-/* Gönder Butonu */
 [data-testid="stChatInput"] button {{
     background: transparent !important;
     color: var(--text-secondary) !important;
@@ -360,7 +354,7 @@ header {{ background: transparent !important; }}
 
 
 # ==============================================================================
-# 4. SİNYAL SİMGESİ & AVATARLAR
+# 5. SİNYAL SİMGESİ & AVATARLAR
 # ==============================================================================
 def signal_mark_svg():
     return '''<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -403,42 +397,47 @@ USER_AVATAR = svg_avatar("user")
 
 
 # ==============================================================================
-# 5. BACKEND İLETİŞİMİ
+# 6. DOĞRUDAN SERVİS ÇAĞRI FONKSİYONU (FastAPI İstemcisi Yerine)
 # ==============================================================================
-def call_backend_api(query: str, history: list = None):
+def resolve_ticket_locally(query: str, history: list = None):
     try:
-        payload = {
-            "ticket_text": query,
-            "chat_history": history if history else []
-        }
-        response = requests.post(
-            f"{API_BASE_URL}/resolve-ticket",
-            json=payload,
-            timeout=30
-        )
-        if response.status_code == 200:
-            data = response.json()
-            sources = data.get("retrieved_sources", [])
-            source_tags = "".join([f'<span class="meta-chip chip-doc"> REF: {s}</span>' for s in sources]) \
-                if sources else '<span class="meta-chip chip-doc"> Genel Kılavuz</span>'
+        if not services_loaded:
+            return f" Servisler yüklenemedi: {load_error}"
 
-            formatted_res = (
-                f"{data.get('ai_resolution')}\n\n"
-                f'<div class="meta-strip">'
-                f'<span class="meta-chip chip-cat"> Kategori: <b>{data.get("category")}</b></span>'
-                f'<span class="meta-chip chip-conf"> Güven: <b>%{data.get("confidence_score")}</b></span>'
-                f'{source_tags}'
-                f'</div>'
-            )
-            return formatted_res
+        # 1. Sınıflandırma Servisini Çalıştır
+        classification = classifier_service.classify(query)
+        category = classification.get("category", "Genel Destek")
+        confidence = classification.get("confidence", 95.0)
+
+        # 2. RAG Servisini Çalıştırarak Yanıtı ve Kaynakları Al
+        rag_response = rag_service.get_response(query, chat_history=history)
+        
+        #rag_response bir sözlük veya metin dönebilir, yapısına göre uyarlayalım:
+        if isinstance(rag_response, dict):
+            ai_resolution = rag_response.get("answer", str(rag_response))
+            sources = rag_response.get("sources", [])
         else:
-            return f" Sunucu Hatası ({response.status_code}): {response.text}"
+            ai_resolution = str(rag_response)
+            sources = []
+
+        source_tags = "".join([f'<span class="meta-chip chip-doc"> REF: {s}</span>' for s in sources]) \
+            if sources else '<span class="meta-chip chip-doc"> Genel Kılavuz</span>'
+
+        formatted_res = (
+            f"{ai_resolution}\n\n"
+            f'<div class="meta-strip">'
+            f'<span class="meta-chip chip-cat"> Kategori: <b>{category}</b></span>'
+            f'<span class="meta-chip chip-conf"> Güven: <b>%{confidence:.1f}</b></span>'
+            f'{source_tags}'
+            f'</div>'
+        )
+        return formatted_res
     except Exception as e:
-        return f" Bir hata oluştu: {str(e)}"
+        return f" Yerel işlem sırasında bir hata oluştu: {str(e)}"
 
 
 # ==============================================================================
-# 6. YARDIMCI: SEGMENTLİ ÖLÇER
+# 7. YARDIMCI: SEGMENTLİ ÖLÇER
 # ==============================================================================
 def render_colorful_meter(label, used_display, total_display, pct, seg_class, text_color):
     segments = 10
@@ -458,13 +457,10 @@ def render_colorful_meter(label, used_display, total_display, pct, seg_class, te
     )
 
 
-
 # ==============================================================================
-# 7. SIDEBAR (TAMAMEN DİNAMİK JSON ENTEGRASYONU)
+# 8. SIDEBAR (DİNAMİK JSON ENTEGRASYONU)
 # ==============================================================================
 CAMARA_FILE_PATH = Path("data/camara_registry.json")
-api_online = False
-# 1. JSON dosyasını oku
 registry_data = {}
 if CAMARA_FILE_PATH.exists():
     try:
@@ -473,11 +469,9 @@ if CAMARA_FILE_PATH.exists():
     except Exception as e:
         st.sidebar.error(f"Veritabanı Okuma Hatası: {e}")
 
-# 2. JSON'daki telefon numaraları listesi
 phone_numbers = list(registry_data.keys())
 
 with st.sidebar:
-    # Tema Değiştirme Butonu
     current_theme = st.session_state.theme_mode
     theme_btn_label = " Aydınlık Mod" if current_theme == "dark" else " Karanlık Mod"
     
@@ -488,20 +482,17 @@ with st.sidebar:
     if not phone_numbers:
         st.warning("`data/camara_registry.json` içinde abone kaydı bulunamadı.")
     else:
-        # JSON'daki kayıtlar arasından aktif hattı seç
         selected_phone = st.selectbox(
             " Aktif Abone Hattı:",
             options=phone_numbers,
             index=0
         )
         
-        # Seçilen abonenin ham verilerini çek
         subscriber = registry_data.get(selected_phone, {})
         device = subscriber.get("device_status", {})
         sim = subscriber.get("sim_status", {})
         bill = subscriber.get("billing_summary", {})
 
-        # Alanları JSON'dan doğrudan haritala
         net_used = float(bill.get("internet_used_gb", 0))
         net_total = float(bill.get("internet_total_gb", 0))
         min_left = int(bill.get("min_left", 0))
@@ -511,13 +502,11 @@ with st.sidebar:
         roaming_enabled = sim.get("roaming_enabled", False)
         net_type = device.get("network_type", "4G/5G")
         
-        # Kalan dakika/SMS oranları
         min_total = 2000
         min_used = max(0, min_total - min_left)
         sms_total = 1000
         sms_used = max(0, sms_total - sms_left)
 
-        # 7.1 Profil Kartı
         roaming_html = (
             '<span style="color:#10B981; font-size:0.72rem; font-weight:700;">● Roaming Aktif</span>' 
             if roaming_enabled 
@@ -543,7 +532,6 @@ with st.sidebar:
             """, unsafe_allow_html=True)
             st.markdown("<div style='padding-bottom: 6px;'></div>", unsafe_allow_html=True)
 
-        # 7.2 Paket Kullanımı
         net_pct = net_used / net_total if net_total > 0 else 0
         min_pct = min_used / min_total if min_total > 0 else 0
         sms_pct = sms_used / sms_total if sms_total > 0 else 0
@@ -561,7 +549,6 @@ with st.sidebar:
             render_colorful_meter(" SMS", f"{sms_used} SMS", f"{sms_total} SMS", sms_pct, "seg-purple on", "#A855F7")
             st.markdown("<div style='padding-bottom: 6px;'></div>", unsafe_allow_html=True)
 
-        # 7.3 Fatura
         with st.container(border=True):
             c_f1, c_f2 = st.columns([1.8, 1.2])
             with c_f1:
@@ -571,7 +558,6 @@ with st.sidebar:
                 st.markdown('<div style="margin-top:10px; margin-bottom:6px; font-size:0.72rem; background:rgba(245,158,11,0.15); color:#F59E0B; border:1px solid rgba(245,158,11,0.4); font-weight:700; padding:5px 8px; border-radius:6px; text-align:center;">Güncel Dönem</div>', unsafe_allow_html=True)
             st.markdown("<div style='padding-bottom: 6px;'></div>", unsafe_allow_html=True)
 
-    # 7.4 Hızlı Aksiyonlar
     st.markdown("<div style='font-size:0.78rem; font-weight:800; color:var(--text-secondary); margin: 0 0 10px 2px; letter-spacing:0.5px;'> HIZLI İŞLEMLER</div>", unsafe_allow_html=True)
     col_a, col_b = st.columns(2)
     with col_a:
@@ -591,12 +577,12 @@ with st.sidebar:
         st.rerun()
 
 # ==============================================================================
-# 8. HEADER
+# 9. HEADER
 # ==============================================================================
-if api_online:
-    status_html = '<div class="status-badge badge-online"><span class="pulse-dot"></span><span>BAĞLANTI AKTİF</span></div>'
+if services_loaded:
+    status_html = '<div class="status-badge badge-online"><span class="pulse-dot"></span><span>YEREL SERVİS AKTİF</span></div>'
 else:
-    status_html = '<div class="status-badge badge-offline"><span> SUNUCU KAPALI</span></div>'
+    status_html = '<div class="status-badge badge-offline"><span> SERVİS HATASI</span></div>'
 
 st.markdown(f"""
 <div class="header-container">
@@ -613,7 +599,7 @@ st.markdown(f"""
 
 
 # ==============================================================================
-# 9. KARŞILAMA EKRANI & HIZLI KARTLAR
+# 10. KARŞILAMA EKRANI & HIZLI KARTLAR
 # ==============================================================================
 if len(st.session_state.messages) == 0:
     st.markdown("""
@@ -641,7 +627,7 @@ if len(st.session_state.messages) == 0:
 
 
 # ==============================================================================
-# 10. MESAJ GEÇMİŞİ
+# 11. MESAJ GEÇMİŞİ
 # ==============================================================================
 for msg in st.session_state.messages:
     avatar = USER_AVATAR if msg["role"] == "user" else ASSISTANT_AVATAR
@@ -650,7 +636,7 @@ for msg in st.session_state.messages:
 
 
 # ==============================================================================
-# 11. GİRDİ YÖNETİMİ & RAG ÇALIŞTIRMA
+# 12. GİRDİ YÖNETİMİ & RAG ÇALIŞTIRMA
 # ==============================================================================
 prompt_input = st.chat_input("Talebinizi buraya yazın (Örn: 'İnternetim çok yavaş', 'Faturam yüksek')...")
 active_prompt = None
@@ -668,7 +654,7 @@ if active_prompt:
 
     with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         with st.spinner(" Kılavuzlar taranıyor ve çözüm üretiliyor..."):
-            full_response = call_backend_api(active_prompt, history=st.session_state.messages)
+            full_response = resolve_ticket_locally(active_prompt, history=st.session_state.messages)
 
             placeholder = st.empty()
             displayed_text = ""
