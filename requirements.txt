@@ -5,3 +5,6 @@ nltk
 mlflow
 jupyter
 pytest
+langchain
+langchain-core
+langchain-community
