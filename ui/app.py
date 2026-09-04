@@ -5,7 +5,12 @@ import time
 import base64
 import json
 from pathlib import Path
+import sys
+from pathlib import Path
 
+# Proje kök dizinini Python yoluna ekle
+root_path = Path(__file__).resolve().parent.parent
+sys.path.append(str(root_path))
 # ==============================================================================
 # 1. SAYFA YAPILANDIRMASI & API URL
 # ==============================================================================
