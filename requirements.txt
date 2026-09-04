@@ -8,3 +8,8 @@ pytest
 langchain
 langchain-core
 langchain-community
+langchain-groq
+langchain-huggingface
+chromadb
+faiss-cpu
+sentence-transformers
